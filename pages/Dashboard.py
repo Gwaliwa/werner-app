@@ -66,6 +66,21 @@ fig = px.scatter(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# -------------------- 3D Deconvolution Visualization --------------------
+st.subheader("🌐 3D Magnetic Deconvolution")
+fig3d = px.scatter_3d(
+    df_results,
+    x="Distance",
+    y="Dip",
+    z="Susceptibility",
+    color=df_results["Cluster"].astype(str),
+    size="Susceptibility",
+    labels={"Distance": "Distance", "Dip": "Dip", "Susceptibility": "Susceptibility"},
+    title="3D Visualization of Magnetic Anomalies"
+)
+fig3d.update_traces(marker=dict(size=4))
+st.plotly_chart(fig3d, use_container_width=True)
+
 # -------------------- Download Button --------------------
 st.subheader("⬇️ Download Results")
 csv = df_results.to_csv(index=False).encode("utf-8")

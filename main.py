@@ -1,8 +1,7 @@
-# main.py
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from io import BytesIO
 
 # -------------------- Page Setup --------------------
 st.set_page_config(page_title="Werner Deconvolution App", layout="wide")
@@ -54,33 +53,42 @@ uploaded = st.file_uploader("📁 Upload a magnetic data file (.dat, .txt, .csv)
 if uploaded:
     st.session_state.uploaded_file = uploaded
 
-# -------------------- File Handling --------------------
+# -------------------- Load from uploaded file or fallback --------------------
 uploaded_file = st.session_state.get("uploaded_file", None)
+
 if uploaded_file:
     df = read_uploaded_file(uploaded_file)
-    if df is not None:
-        st.session_state.df = df
-
-        st.success(f"✅ Loaded {len(df)} data points.")
-        st.subheader("📄 Raw Uploaded Data")
-        st.dataframe(df)
-
-        # Magnetic anomaly plot
-        fig = px.line(df, x="x", y="tmag", title="📉 Distance vs Magnetic Anomalies",
-                      labels={"x": "Distance", "tmag": "Tmag"})
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Derivative plot
-        x = df["x"].values
-        tmag = df["tmag"].values
-        x_der, h_der = compute_horizontal_derivative(x, tmag)
-
-        if x_der:
-            st.subheader("📈 Horizontal Derivative (dT/dx)")
-            fig2 = px.scatter(x=x_der, y=h_der, labels={"x": "Distance", "y": "dT/dx"},
-                              title="Horizontal Derivative")
-            st.plotly_chart(fig2, use_container_width=True)
-        else:
-            st.warning("⚠️ Not enough data points to compute derivative (minimum 7).")
 else:
-    st.info("Please upload a `.dat`, `.txt`, or `.csv` file to begin.")
+    try:
+        with open("Igunda1.DAT", "rb") as f:
+            default_stream = BytesIO(f.read())
+            df = read_uploaded_file(default_stream)
+            st.info("🗂 Using default file: Igunda1.DAT")
+    except FileNotFoundError:
+        st.warning("⚠️ Default file not found and no user file uploaded.")
+        st.stop()
+
+# -------------------- Visualization --------------------
+if df is not None:
+    st.session_state.df = df
+    st.success(f"✅ Loaded {len(df)} data points.")
+    st.subheader("📄 Raw Data")
+    st.dataframe(df)
+
+    # Magnetic anomaly plot
+    fig = px.line(df, x="x", y="tmag", title="📉 Distance vs Magnetic Anomalies",
+                  labels={"x": "Distance", "tmag": "Tmag"})
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Derivative plot
+    x = df["x"].values
+    tmag = df["tmag"].values
+    x_der, h_der = compute_horizontal_derivative(x, tmag)
+
+    if x_der:
+        st.subheader("📈 Horizontal Derivative (dT/dx)")
+        fig2 = px.scatter(x=x_der, y=h_der, labels={"x": "Distance", "y": "dT/dx"},
+                          title="Horizontal Derivative")
+        st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.warning("⚠️ Not enough data points to compute derivative (minimum 7).")
